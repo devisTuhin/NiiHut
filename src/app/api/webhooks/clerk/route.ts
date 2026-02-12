@@ -49,8 +49,9 @@ export async function POST(req: Request) {
   const eventType = evt.type
 
   if (eventType === 'user.created' || eventType === 'user.updated') {
-    const { id, email_addresses, first_name, last_name } = evt.data
+    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data
     const email = email_addresses[0]?.email_address
+    const role = (public_metadata as { role?: string })?.role || 'customer'
 
     if (!email) { 
         return new Response('Error: No email found', { status: 400 })
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       email: email,
       first_name: first_name,
       last_name: last_name,
-      // role is set to default 'customer' by DB if not provided, or preserved if updating
+      role: role,
     }, { onConflict: 'clerk_id' })
 
     if (error) {
