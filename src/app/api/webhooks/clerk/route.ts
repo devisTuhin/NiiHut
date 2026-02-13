@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
     // ── 4. Handle user.created / user.updated ───────────────────────────
     if (eventType === 'user.created' || eventType === 'user.updated') {
-      const { id, email_addresses, first_name, last_name, public_metadata } =
+      const { id, email_addresses, first_name, last_name, username, public_metadata } =
         evt.data
 
       const email = email_addresses?.[0]?.email_address
@@ -83,6 +83,7 @@ export async function POST(req: Request) {
             email,
             first_name: first_name ?? null,
             last_name: last_name ?? null,
+            username: username ?? null,
             role,
           },
           { onConflict: 'clerk_id' }
