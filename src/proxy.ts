@@ -10,7 +10,16 @@ const isProtectedRoute = createRouteMatcher([
 
 const isAdminRoute = createRouteMatcher(['/admin(.*)', '/dashboard(.*)']);
 
+// Webhook routes should NOT go through Clerk auth – they use their own
+// signature verification (Svix). Matching them here lets us skip early.
+const isWebhookRoute = createRouteMatcher(['/api/webhooks(.*)']);
+
 export default clerkMiddleware(async (auth, req) => {
+  // Skip Clerk auth for webhook routes – they authenticate via Svix signatures
+  if (isWebhookRoute(req)) {
+    return NextResponse.next();
+  }
+
   const { userId, redirectToSignIn } = await auth();
 
   // Protect Admin Routes
