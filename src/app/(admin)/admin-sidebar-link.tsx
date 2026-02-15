@@ -5,18 +5,17 @@
  */
 
 import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export function AdminSidebarLink({
   href,
   label,
-  icon: Icon,
+  icon,
 }: {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: React.ReactNode;
 }) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(href + '/');
@@ -31,7 +30,7 @@ export function AdminSidebarLink({
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       )}
     >
-      <Icon className="w-4 h-4" />
+      {icon}
       {label}
     </Link>
   );

@@ -8,6 +8,7 @@
  *   <CategoryForm editMode category={cat} />  — renders "Edit" button that shows modal
  */
 
+import { ImageUpload } from '@/components/ui/image-upload';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { createCategory, updateCategory } from '@/server-actions/admin';
@@ -49,6 +50,10 @@ export function CategoryForm({ editMode = false, category }: CategoryFormProps) 
       }
       return updated;
     });
+  };
+
+  const handleImageChange = (url: string | null) => {
+    setFormData((prev) => ({ ...prev, image_url: url || '' }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -113,11 +118,12 @@ export function CategoryForm({ editMode = false, category }: CategoryFormProps) 
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-        <div className="bg-white rounded-xl border shadow-xl p-6 w-full max-w-md mx-4">
+        <div className="bg-white rounded-xl border shadow-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
           <h3 className="font-semibold text-gray-900 mb-4">Edit Category</h3>
           <FormFields
             formData={formData}
             handleChange={handleChange}
+            handleImageChange={handleImageChange}
             setFormData={setFormData}
             error={error}
             isPending={isPending}
@@ -137,6 +143,7 @@ export function CategoryForm({ editMode = false, category }: CategoryFormProps) 
       <FormFields
         formData={formData}
         handleChange={handleChange}
+        handleImageChange={handleImageChange}
         setFormData={setFormData}
         error={error}
         isPending={isPending}
@@ -150,13 +157,24 @@ export function CategoryForm({ editMode = false, category }: CategoryFormProps) 
 function FormFields({
   formData,
   handleChange,
+  handleImageChange,
   setFormData,
   error,
   isPending,
   handleSubmit,
   submitLabel,
   onCancel,
-}: any) {
+}: {
+  formData: any;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleImageChange: (url: string | null) => void;
+  setFormData: any;
+  error: string | null;
+  isPending: boolean;
+  handleSubmit: (e: React.FormEvent) => void;
+  submitLabel: string;
+  onCancel?: () => void;
+}) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
@@ -181,13 +199,14 @@ function FormFields({
         onChange={handleChange}
         required
       />
-      <Input
-        label="Image URL"
-        name="image_url"
-        placeholder="https://..."
-        value={formData.image_url}
-        onChange={handleChange}
+
+      {/* Image Upload with drag-and-drop */}
+      <ImageUpload
+        value={formData.image_url || undefined}
+        onChange={handleImageChange}
+        label="Category Image"
       />
+
       <Textarea
         label="Description"
         name="description"

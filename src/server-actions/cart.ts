@@ -7,7 +7,7 @@
  * guest sessions (via a cookie-based session ID).
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
@@ -55,11 +55,12 @@ async function resolveUserId(supabase: any): Promise<string | null> {
  * Retrieves the current user's cart with all items and product details.
  */
 export async function getCart() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const internalUserId = await resolveUserId(supabase);
   const sessionId = await getCartSessionId();
 
-  const selectQuery = '*, items:cart_items(*, product:products(id, name, slug, price, image_url, inventory))';
+
+  const selectQuery = '*, items:cart_items(*, product:products(id, name, slug, price, inventory, images:product_images(url, display_order)))';
 
   // Try by user_id first, then session_id
   if (internalUserId) {
@@ -137,7 +138,7 @@ async function mergeSessionCart(supabase: any, userCartId: string, sessionId: st
  * Adds a product to the cart. Creates a cart if none exists.
  */
 export async function addToCart(productId: string, quantity: number = 1) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const internalUserId = await resolveUserId(supabase);
   const sessionId = await getCartSessionId();
 
@@ -160,7 +161,10 @@ export async function addToCart(productId: string, quantity: number = 1) {
       .select('id')
       .single();
 
-    if (error || !newCart) throw new Error('Failed to create cart');
+    if (error || !newCart) {
+      console.error('[addToCart] Failed to create cart:', { error, internalUserId, sessionId });
+      throw new Error('Failed to create cart: ' + (error?.message || 'unknown'));
+    }
     cartId = newCart.id;
   }
 
@@ -193,7 +197,7 @@ export async function addToCart(productId: string, quantity: number = 1) {
  * Updates the quantity of a cart item. Removes it if quantity <= 0.
  */
 export async function updateCartItem(itemId: string, quantity: number) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (quantity <= 0) {
     await supabase.from('cart_items').delete().eq('id', itemId);
@@ -209,7 +213,7 @@ export async function updateCartItem(itemId: string, quantity: number) {
  * Removes an item from the cart.
  */
 export async function removeFromCart(itemId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   await supabase.from('cart_items').delete().eq('id', itemId);
 
   revalidatePath('/cart');

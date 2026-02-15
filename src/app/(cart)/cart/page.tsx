@@ -17,7 +17,7 @@ export default async function CartPage() {
   const items = cart?.items ?? [];
 
   const subtotal = items.reduce(
-    (sum: number, item: any) => sum + item.price * item.quantity,
+    (sum: number, item: any) => sum + Number(item.product?.price ?? 0) * item.quantity,
     0
   );
   const total = subtotal + (items.length > 0 ? DELIVERY_FEE : 0);

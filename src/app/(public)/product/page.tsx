@@ -11,7 +11,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export const revalidate = 3600; // ISR: 1 hour
+export const revalidate = 60; // ISR: 1 minute
 
 export const metadata: Metadata = {
   title: 'All Products | Niihut',
@@ -49,7 +49,7 @@ export default async function ProductsPage({
   // Build product query
   let query = supabase
     .from('products')
-    .select('id, name, slug, price, image_url, category_id, inventory', {
+    .select('id, name, slug, price, category_id, inventory, images:product_images(url, display_order)', {
       count: 'exact',
     })
     .eq('is_active', true);
@@ -166,9 +166,9 @@ export default async function ProductsPage({
             className="group"
           >
             <div className="aspect-square relative bg-gray-100 rounded-xl overflow-hidden mb-3">
-              {product.image_url ? (
+              {product.images?.[0]?.url ? (
                 <Image
-                  src={product.image_url}
+                  src={product.images[0].url}
                   alt={product.name}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"

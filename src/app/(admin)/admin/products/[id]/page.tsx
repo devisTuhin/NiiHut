@@ -4,7 +4,7 @@
  */
 
 import { ProductForm } from '@/components/admin/product-form';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { getAdminCategories } from '@/server-actions/admin';
 import { ChevronRight } from 'lucide-react';
 import { Metadata } from 'next';
@@ -22,10 +22,10 @@ type Props = {
 export default async function EditProductPage({ params }: Props) {
   const { id } = await params;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: product } = await supabase
     .from('products')
-    .select('*')
+    .select('*, images:product_images(id, url, display_order)')
     .eq('id', id)
     .single();
 

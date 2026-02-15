@@ -1,11 +1,12 @@
 'use client';
 
 /**
- * ProductForm — Shared form component for creating and editing products.
- * Used by both /admin/products/new and /admin/products/[id] pages.
+ * ProductForm — Shared form for creating and editing products.
+ * Supports multi-image upload via the MultiImageUpload component.
  */
 
 import { Input } from '@/components/ui/input';
+import { MultiImageUpload } from '@/components/ui/multi-image-upload';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { createProduct, updateProduct } from '@/server-actions/admin';
@@ -24,6 +25,12 @@ export function ProductForm({ product, categories }: ProductFormProps) {
   const [error, setError] = useState<string | null>(null);
   const isEdit = !!product;
 
+  // Extract existing image URLs from product.images (product_images relation)
+  const existingImages: string[] =
+    product?.images
+      ?.sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .map((img: any) => img.url) ?? [];
+
   const [formData, setFormData] = useState({
     name: product?.name ?? '',
     slug: product?.slug ?? '',
@@ -31,9 +38,10 @@ export function ProductForm({ product, categories }: ProductFormProps) {
     price: product?.price ?? '',
     inventory: product?.inventory ?? 0,
     category_id: product?.category_id ?? '',
-    image_url: product?.image_url ?? '',
     is_active: product?.is_active ?? true,
   });
+
+  const [imageUrls, setImageUrls] = useState<string[]>(existingImages);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -66,17 +74,20 @@ export function ProductForm({ product, categories }: ProductFormProps) {
     startTransition(async () => {
       try {
         const data = {
-          ...formData,
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description || undefined,
           price: Number(formData.price),
           inventory: Number(formData.inventory),
           category_id: formData.category_id || null,
+          is_active: formData.is_active,
         };
 
         let result;
         if (isEdit) {
-          result = await updateProduct(product.id, data);
+          result = await updateProduct(product.id, data, imageUrls);
         } else {
-          result = await createProduct(data);
+          result = await createProduct({ ...data, image_urls: imageUrls });
         }
 
         if (result.success) {
@@ -107,23 +118,24 @@ export function ProductForm({ product, categories }: ProductFormProps) {
         </div>
       )}
 
-      <Input
-        label="Product Name"
-        name="name"
-        placeholder="Enter product name"
-        value={formData.name}
-        onChange={handleChange}
-        required
-      />
-
-      <Input
-        label="Slug"
-        name="slug"
-        placeholder="product-slug"
-        value={formData.slug}
-        onChange={handleChange}
-        required
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Product Name"
+          name="name"
+          placeholder="Enter product name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <Input
+          label="Slug"
+          name="slug"
+          placeholder="product-slug"
+          value={formData.slug}
+          onChange={handleChange}
+          required
+        />
+      </div>
 
       <Textarea
         label="Description"
@@ -134,7 +146,7 @@ export function ProductForm({ product, categories }: ProductFormProps) {
         rows={4}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Input
           label="Price (৳)"
           name="price"
@@ -155,23 +167,17 @@ export function ProductForm({ product, categories }: ProductFormProps) {
           value={formData.inventory}
           onChange={handleChange}
         />
+        <Select
+          label="Category"
+          name="category_id"
+          value={formData.category_id}
+          onChange={handleChange}
+          options={categoryOptions}
+        />
       </div>
 
-      <Select
-        label="Category"
-        name="category_id"
-        value={formData.category_id}
-        onChange={handleChange}
-        options={categoryOptions}
-      />
-
-      <Input
-        label="Image URL"
-        name="image_url"
-        placeholder="https://..."
-        value={formData.image_url}
-        onChange={handleChange}
-      />
+      {/* Multi-image upload */}
+      <MultiImageUpload value={imageUrls} onChange={setImageUrls} />
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input

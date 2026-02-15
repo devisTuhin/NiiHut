@@ -26,8 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const images =
-    product.images?.map((img) => img.url) ||
-    (product.image_url ? [product.image_url] : []);
+    product.images?.map((img) => img.url) || [];
 
   return {
     title: `${product.name} | Niihut`,
@@ -50,10 +49,7 @@ export default async function ProductDetailsPage({ params }: Props) {
   }
 
   // Collect all images (primary + gallery)
-  const allImages = [
-    ...(product.image_url ? [product.image_url] : []),
-    ...(product.images?.map((img) => img.url).filter((url) => url !== product.image_url) || []),
-  ];
+  const allImages = product.images?.map((img) => img.url) || [];
 
   // Fetch related products if category exists
   const relatedProducts = product.category_id
@@ -237,9 +233,9 @@ export default async function ProductDetailsPage({ params }: Props) {
                 className="group"
               >
                 <div className="aspect-square relative bg-gray-100 rounded-xl overflow-hidden mb-3">
-                  {rp.image_url ? (
+                  {rp.images?.[0]?.url ? (
                     <Image
-                      src={rp.image_url}
+                      src={rp.images[0].url}
                       alt={rp.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"

@@ -15,17 +15,22 @@ export function CartItemRow({ item }: { item: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const product = item.product;
+  const imageUrl =
+    product?.images?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.url ?? null;
+  const price = Number(product?.price ?? 0);
+
   const handleQuantityChange = (newQty: number) => {
     if (newQty < 1) return;
     startTransition(async () => {
-      await updateCartItem(item.product_id, newQty);
+      await updateCartItem(item.id, newQty);
       router.refresh();
     });
   };
 
   const handleRemove = () => {
     startTransition(async () => {
-      await removeFromCart(item.product_id);
+      await removeFromCart(item.id);
       router.refresh();
     });
   };
@@ -38,10 +43,10 @@ export function CartItemRow({ item }: { item: any }) {
     >
       {/* Image */}
       <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-        {item.image_url ? (
+        {imageUrl ? (
           <Image
-            src={item.image_url}
-            alt={item.product_name || item.name}
+            src={imageUrl}
+            alt={product?.name || 'Product'}
             fill
             className="object-cover"
             sizes="80px"
@@ -56,10 +61,10 @@ export function CartItemRow({ item }: { item: any }) {
       {/* Details */}
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-sm text-gray-900 truncate">
-          {item.product_name || item.name}
+          {product?.name || 'Unknown Product'}
         </h3>
         <p className="text-sm font-bold text-gray-900 mt-1">
-          ৳{Number(item.price).toLocaleString()}
+          ৳{price.toLocaleString()}
         </p>
       </div>
 
@@ -89,7 +94,7 @@ export function CartItemRow({ item }: { item: any }) {
       {/* Subtotal & Remove */}
       <div className="text-right flex-shrink-0">
         <p className="text-sm font-bold text-gray-900">
-          ৳{(item.price * item.quantity).toLocaleString()}
+          ৳{(price * item.quantity).toLocaleString()}
         </p>
         <button
           onClick={handleRemove}

@@ -7,7 +7,7 @@
  */
 
 import { requireRole } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import type { OrderStatus } from '@/types/db';
 import { revalidatePath } from 'next/cache';
 
@@ -23,7 +23,7 @@ export async function getAdminOrders(params?: {
   flaggedOnly?: boolean;
 }) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const page = params?.page ?? 1;
   const perPage = params?.perPage ?? 20;
@@ -65,7 +65,7 @@ export async function updateOrderStatus(
   notes?: string
 ) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Get admin user id for history tracking
   const { data: adminUser } = await supabase
@@ -117,7 +117,7 @@ export async function cancelOrder(orderId: string, reason?: string) {
  */
 export async function getAdminProducts(params?: { page?: number; perPage?: number }) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const page = params?.page ?? 1;
   const perPage = params?.perPage ?? 20;
@@ -140,7 +140,7 @@ export async function getAdminProducts(params?: { page?: number; perPage?: numbe
 }
 
 /**
- * Create a new product (admin only).
+ * Create a new product with images (admin only).
  */
 export async function createProduct(productData: {
   name: string;
@@ -148,30 +148,44 @@ export async function createProduct(productData: {
   description?: string;
   price: number;
   inventory: number;
-  category_id?: string;
+  category_id?: string | null;
   is_active?: boolean;
+  image_urls?: string[];
 }) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+
+  const { image_urls, ...product } = productData;
 
   const { data, error } = await supabase
     .from('products')
     .insert({
-      ...productData,
-      is_active: productData.is_active ?? true,
+      ...product,
+      category_id: product.category_id || null,
+      is_active: product.is_active ?? true,
     })
     .select('id')
     .single();
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath('/dashboard/products');
+  // Insert images if provided
+  if (image_urls && image_urls.length > 0) {
+    const imageRows = image_urls.map((url: string, index: number) => ({
+      product_id: data.id,
+      url,
+      display_order: index,
+    }));
+    await supabase.from('product_images').insert(imageRows);
+  }
+
+  revalidatePath('/admin/products');
   revalidatePath('/');
   return { success: true, productId: data.id };
 }
 
 /**
- * Update an existing product (admin only).
+ * Update an existing product with images (admin only).
  */
 export async function updateProduct(
   productId: string,
@@ -181,12 +195,13 @@ export async function updateProduct(
     description: string;
     price: number;
     inventory: number;
-    category_id: string;
+    category_id: string | null;
     is_active: boolean;
-  }>
+  }>,
+  image_urls?: string[]
 ) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('products')
@@ -195,7 +210,26 @@ export async function updateProduct(
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath('/dashboard/products');
+  // Sync images if provided
+  if (image_urls !== undefined) {
+    // Delete existing images
+    await supabase
+      .from('product_images')
+      .delete()
+      .eq('product_id', productId);
+
+    // Insert new images with order
+    if (image_urls.length > 0) {
+      const imageRows = image_urls.map((url: string, index: number) => ({
+        product_id: productId,
+        url,
+        display_order: index,
+      }));
+      await supabase.from('product_images').insert(imageRows);
+    }
+  }
+
+  revalidatePath('/admin/products');
   revalidatePath('/');
   return { success: true };
 }
@@ -205,7 +239,7 @@ export async function updateProduct(
  */
 export async function deleteProduct(productId: string) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('products')
@@ -225,7 +259,7 @@ export async function deleteProduct(productId: string) {
  */
 export async function getAdminCategories() {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from('categories')
@@ -245,7 +279,7 @@ export async function createCategory(categoryData: {
   image_url?: string;
 }) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('categories')
@@ -267,7 +301,7 @@ export async function updateCategory(
   updates: Partial<{ name: string; slug: string; description: string; image_url: string; is_active: boolean }>
 ) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('categories')
@@ -287,7 +321,7 @@ export async function updateCategory(
  */
 export async function blockPhone(phoneNumber: string, reason: string) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: admin } = await supabase
     .from('users')
@@ -310,7 +344,7 @@ export async function blockPhone(phoneNumber: string, reason: string) {
  */
 export async function unblockPhone(phoneNumber: string) {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('blocked_phones')
@@ -326,7 +360,7 @@ export async function unblockPhone(phoneNumber: string) {
  */
 export async function getBlockedPhones() {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from('blocked_phones')
@@ -343,7 +377,7 @@ export async function getBlockedPhones() {
  */
 export async function getDashboardStats() {
   await requireRole('admin');
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [
     { count: totalOrders },

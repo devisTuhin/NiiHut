@@ -8,7 +8,6 @@ export type Product = {
   description: string;
   price: number;
   inventory: number;
-  image_url?: string;
   category_id?: string;
   images?: { url: string }[];
   is_active: boolean;
@@ -19,7 +18,7 @@ export const getProductBySlug = unstable_cache(
     const supabase = await createPublicClient();
     const { data: product, error } = await supabase
       .from('products')
-      .select('*, images:product_images(url)')
+      .select('*, images:product_images(url, display_order)')
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
@@ -28,10 +27,17 @@ export const getProductBySlug = unstable_cache(
       return null;
     }
 
+    // Sort images by display_order
+    if (product.images) {
+      product.images.sort(
+        (a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0)
+      );
+    }
+
     return product as Product;
   },
   ['product-by-slug'],
-  { revalidate: 3600, tags: ['products'] }
+  { revalidate: 60, tags: ['products'] }
 );
 
 export const getRelatedProducts = unstable_cache(
@@ -39,16 +45,16 @@ export const getRelatedProducts = unstable_cache(
     const supabase = await createPublicClient();
     const { data } = await supabase
       .from('products')
-      .select('id, name, slug, price, image_url')
+      .select('id, name, slug, price, images:product_images(url, display_order)')
       .eq('category_id', categoryId)
       .eq('is_active', true)
       .neq('id', currentProductId)
       .limit(4);
-    
+
     return data || [];
   },
   ['related-products'],
-  { revalidate: 3600, tags: ['products'] }
+  { revalidate: 60, tags: ['products'] }
 );
 
 export const getNewArrivals = unstable_cache(
@@ -56,13 +62,13 @@ export const getNewArrivals = unstable_cache(
     const supabase = await createPublicClient();
     const { data } = await supabase
       .from('products')
-      .select('id, name, slug, price, image_url')
+      .select('id, name, slug, price, images:product_images(url, display_order)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(8);
-    
+
     return data || [];
   },
   ['new-arrivals'],
-  { revalidate: 3600, tags: ['products', 'home-content'] }
+  { revalidate: 60, tags: ['products', 'home-content'] }
 );

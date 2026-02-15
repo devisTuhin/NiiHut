@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/server";
 
 export async function getCurrentUser() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: user } = await supabase
         .from('users')
         .select('*')

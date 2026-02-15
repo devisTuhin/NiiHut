@@ -29,10 +29,10 @@ export default async function AdminLayout({
   }
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
-    { href: '/admin/products', label: 'Products', icon: Package },
-    { href: '/admin/categories', label: 'Categories', icon: FolderTree },
+    { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart className="w-4 h-4" /> },
+    { href: '/admin/products', label: 'Products', icon: <Package className="w-4 h-4" /> },
+    { href: '/admin/categories', label: 'Categories', icon: <FolderTree className="w-4 h-4" /> },
   ];
 
   return (
