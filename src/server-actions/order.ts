@@ -7,7 +7,7 @@
  */
 
 import { RiskEngine } from '@/lib/risk-engine';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { OrderStatus } from '@/types/db';
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
@@ -49,7 +49,7 @@ async function resolveUserId(supabase: any): Promise<string | null> {
  * 5. Clears the cart
  */
 export async function createCodOrder(formData: CheckoutFormData) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const internalUserId = await resolveUserId(supabase);
 
   // 1. Get Cart
